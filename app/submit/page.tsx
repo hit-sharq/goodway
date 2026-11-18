@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { useSession } from 'next-auth/react'
+import { useAuth, useUser } from '@clerk/nextjs'
 import { useRouter } from 'next/navigation'
 import { ArrowRight, MapPin, Utensils, Bookmark, Heart, Sparkles } from 'lucide-react'
 
@@ -29,7 +29,8 @@ type FormData = {
 }
 
 export default function SubmitPage() {
-  const { data: session } = useSession()
+  const { userId } = useAuth()
+  const { user: clerkUser } = useUser()
   const router = useRouter()
   const [error, setError] = useState('')
   const [submitting, setSubmitting] = useState(false)
@@ -49,7 +50,7 @@ export default function SubmitPage() {
     landmark: '',
   })
 
-  if (!session) {
+  if (!userId) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <p className="text-muted-foreground">Please sign in to submit a business.</p>

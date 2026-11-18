@@ -1,16 +1,19 @@
-import { auth } from "@/lib/auth"
+import { getCurrentUser } from "@/lib/auth"
 import { prisma } from "@/lib/prisma"
-import { redirect } from "next/navigation"
 import { Star, Heart, MapPin, Clock3 } from "lucide-react"
 
 export default async function SavedPage() {
-  const session = await auth()
-  if (!session) {
-    redirect("/signin")
+  const user = await getCurrentUser()
+  if (!user) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <p className="text-muted-foreground">Please sign in to view saved places.</p>
+      </div>
+    )
   }
 
   const savedPlaces = await prisma.savedPlace.findMany({
-    where: { userId: session.user.id },
+    where: { userId: user.id },
     include: { place: { include: { categoryRef: true } } },
     orderBy: { createdAt: "desc" },
   })

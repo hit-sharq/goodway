@@ -1,11 +1,12 @@
-import { NextResponse } from 'next/server'
-import { prisma } from '@/lib/prisma'
+import { NextResponse } from "next/server"
+import { auth } from "@clerk/nextjs/server"
+import { prisma } from "@/lib/prisma"
 
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url)
-  const query = searchParams.get('q') ?? ''
-  const category = searchParams.get('category') ?? ''
-  const location = searchParams.get('location') ?? ''
+  const query = searchParams.get("q") ?? ""
+  const category = searchParams.get("category") ?? ""
+  const location = searchParams.get("location") ?? ""
 
   const places = await prisma.place.findMany({
     where: {
@@ -13,11 +14,11 @@ export async function GET(request: Request) {
         query
           ? {
               OR: [
-                { name: { contains: query, mode: 'insensitive' } },
-                { category: { contains: query, mode: 'insensitive' } },
-                { address: { contains: query, mode: 'insensitive' } },
-                { landmark: { contains: query, mode: 'insensitive' } },
-                { description: { contains: query, mode: 'insensitive' } },
+                { name: { contains: query, mode: "insensitive" } },
+                { category: { contains: query, mode: "insensitive" } },
+                { address: { contains: query, mode: "insensitive" } },
+                { landmark: { contains: query, mode: "insensitive" } },
+                { description: { contains: query, mode: "insensitive" } },
               ],
             }
           : {},
@@ -25,15 +26,25 @@ export async function GET(request: Request) {
       ],
     },
     include: { categoryRef: true },
-    orderBy: { createdAt: 'desc' },
+    orderBy: { createdAt: "desc" },
   })
 
   return NextResponse.json(places)
 }
 
 export async function POST(request: Request) {
+  const { userId } = await auth()
+  if (!userId) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+  }
+
   try {
     const body = await request.json()
+    const user = await (await import("@/lib/auth")).getCurrentUser()
+
+    if (!user) {
+      return NextResponse.json({ error: "User not found" }, { status: 404 })
+    }
 
     const place = await prisma.place.create({
       data: {
@@ -58,6 +69,6 @@ export async function POST(request: Request) {
 
     return NextResponse.json(place, { status: 201 })
   } catch (error) {
-    return NextResponse.json({ error: 'Failed to create place' }, { status: 400 })
+    return NextResponse.json({ error: "Failed to create place" }, { status: 400 })
   }
 }

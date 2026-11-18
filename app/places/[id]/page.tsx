@@ -1,6 +1,5 @@
-import { auth } from "@/lib/auth"
+import { getCurrentUser } from "@/lib/auth"
 import { prisma } from "@/lib/prisma"
-import { redirect } from "next/navigation"
 import { notFound } from "next/navigation"
 import { MapPin, Star, Clock3, Footprints, Bookmark, Navigation, ArrowRight, Check } from "lucide-react"
 
@@ -10,7 +9,7 @@ export default async function PlaceDetailPage({
   params: Promise<{ id: string }>
 }) {
   const { id } = await params
-  const session = await auth()
+  const user = await getCurrentUser()
 
   const place = await prisma.place.findUnique({
     where: { id },
@@ -29,10 +28,10 @@ export default async function PlaceDetailPage({
     notFound()
   }
 
-  const isSaved = session?.user?.id
+  const isSaved = user
     ? await prisma.savedPlace.findUnique({
         where: {
-          userId_placeId: { userId: session.user.id, placeId: place.id },
+          userId_placeId: { userId: user.id, placeId: place.id },
         },
       })
     : null

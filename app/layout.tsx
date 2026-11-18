@@ -1,6 +1,4 @@
-'use client'
-
-import { useSession, signOut, SessionProvider } from 'next-auth/react'
+import { ClerkProvider } from '@clerk/nextjs'
 import './globals.css'
 
 export const metadata = {
@@ -17,9 +15,9 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body className="antialiased">
-        <SessionProvider>
+        <ClerkProvider>
           {children}
-        </SessionProvider>
+        </ClerkProvider>
       </body>
     </html>
   )

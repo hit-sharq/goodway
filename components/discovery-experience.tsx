@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useMemo, useState, type KeyboardEvent } from 'react'
-import { useSession, signIn, signOut } from 'next-auth/react'
+import { useAuth, useUser, SignInButton, SignOutButton } from '@clerk/nextjs'
 import {
   ArrowDownRight,
   ArrowLeft,
@@ -78,8 +78,8 @@ export function DiscoveryExperience() {
   const [places, setPlaces] = useState<Place[]>([])
   const [categories, setCategories] = useState<Category[]>([])
   const [loading, setLoading] = useState(true)
-  const { data: session } = useSession()
-  const userId = session?.user?.id
+  const { userId, isSignedIn } = useAuth()
+  const { user: clerkUser } = useUser()
   const [savedPlaceIds, setSavedPlaceIds] = useState<Set<string>>(new Set())
 
   useEffect(() => {
@@ -128,7 +128,7 @@ export function DiscoveryExperience() {
 
   async function toggleSave(placeId: string) {
     if (!userId) {
-      signIn('credentials', { callbackUrl: window.location.pathname, redirect: false })
+      window.location.href = '/sign-in'
       return
     }
 
@@ -198,13 +198,13 @@ export function DiscoveryExperience() {
           <button className="language-button" aria-label="Choose language">
             <Globe2 size={16} /><span>EN</span><ChevronDown size={13} />
           </button>
-          {session?.user ? (
+          {isSignedIn && clerkUser ? (
             <div className="flex items-center gap-3">
-              <span className="text-xs text-muted-foreground hidden sm:block">{session.user.name}</span>
-              <button onClick={() => signOut()} className="sign-in-button">Sign out</button>
+              <span className="text-xs text-muted-foreground hidden sm:block">{clerkUser.fullName ?? clerkUser.emailAddresses[0]?.emailAddress}</span>
+              <SignOutButton>Sign out</SignOutButton>
             </div>
           ) : (
-            <button className="sign-in-button" onClick={() => signIn()}>Sign in</button>
+            <SignInButton>Sign in</SignInButton>
           )}
           <a href="/submit" className="list-business-button">
             List your business <ArrowRight size={15} />
@@ -222,10 +222,10 @@ export function DiscoveryExperience() {
             <a href="#explore" onClick={() => setMenuOpen(false)}>Explore</a>
             <a href="#how-it-works" onClick={() => setMenuOpen(false)}>How it works</a>
             <a href="#business" onClick={() => setMenuOpen(false)}>For businesses</a>
-            {session ? (
-              <button onClick={() => { setMenuOpen(false); signOut() }}>Sign out</button>
+            {isSignedIn ? (
+              <div onClick={() => setMenuOpen(false)}><SignOutButton>Sign out</SignOutButton></div>
             ) : (
-              <button onClick={() => { setMenuOpen(false); signIn() }}>Sign in</button>
+              <div onClick={() => setMenuOpen(false)}><SignInButton>Sign in</SignInButton></div>
             )}
           </nav>
         )}
@@ -459,9 +459,9 @@ function PlaceCard({ place, onSelect, isSelected, isSaved, onSave }: { place: Pl
         <img className="place-image" src={place.image} alt={`${place.name} interior`} loading="lazy" />
         {place.badge && <span className={`place-badge ${place.color === 'sage' ? 'badge-green' : 'badge-neutral'}`}>{place.badge}</span>}
         <span className="place-walk"><Footprints size={12} /> {place.walk}</span>
-        <button onClick={(e) => { e.stopPropagation(); onSave?.(place.id) }} className={`place-save-btn ${isSaved ? 'place-saved' : ''}`} aria-label={isSaved ? 'Unsave place' : 'Save place'}>
+        <span onClick={(e) => { e.stopPropagation(); onSave?.(place.id) }} className={`place-save-btn ${isSaved ? 'place-saved' : ''}`} role="button" aria-label={isSaved ? 'Unsave place' : 'Save place'}>
           <Bookmark size={14} fill={isSaved ? 'currentColor' : 'none'} stroke={isSaved ? 'none' : 'currentColor'} />
-        </button>
+        </span>
       </span>
       <span className="place-content">
         <span className="place-topline">

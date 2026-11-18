@@ -1,11 +1,16 @@
-import { auth } from "@/lib/auth"
-import { prisma } from "@/lib/prisma"
 import { NextResponse } from "next/server"
+import { auth } from "@clerk/nextjs/server"
+import { prisma } from "@/lib/prisma"
 
 export async function GET(request: Request) {
-  const session = await auth()
-  if (!session?.user?.id) {
+  const { userId } = await auth()
+  if (!userId) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+  }
+
+  const user = await (await import("@/lib/auth")).getCurrentUser()
+  if (!user) {
+    return NextResponse.json({ error: "User not found" }, { status: 404 })
   }
 
   const { searchParams } = new URL(request.url)
@@ -14,14 +19,14 @@ export async function GET(request: Request) {
   if (placeId) {
     const saved = await prisma.savedPlace.findUnique({
       where: {
-        userId_placeId: { userId: session.user.id, placeId },
+        userId_placeId: { userId: user.id, placeId },
       },
     })
     return NextResponse.json({ saved: !!saved })
   }
 
   const savedPlaces = await prisma.savedPlace.findMany({
-    where: { userId: session.user.id },
+    where: { userId: user.id },
     include: { place: { include: { categoryRef: true } } },
     orderBy: { createdAt: "desc" },
   })
@@ -30,9 +35,14 @@ export async function GET(request: Request) {
 }
 
 export async function POST(request: Request) {
-  const session = await auth()
-  if (!session?.user?.id) {
+  const { userId } = await auth()
+  if (!userId) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+  }
+
+  const user = await (await import("@/lib/auth")).getCurrentUser()
+  if (!user) {
+    return NextResponse.json({ error: "User not found" }, { status: 404 })
   }
 
   const { placeId } = await request.json()
@@ -40,7 +50,7 @@ export async function POST(request: Request) {
   try {
     const existing = await prisma.savedPlace.findUnique({
       where: {
-        userId_placeId: { userId: session.user.id, placeId },
+        userId_placeId: { userId: user.id, placeId },
       },
     })
 
@@ -52,7 +62,7 @@ export async function POST(request: Request) {
     }
 
     await prisma.savedPlace.create({
-      data: { userId: session.user.id, placeId },
+      data: { userId: user.id, placeId },
     })
 
     return NextResponse.json({ saved: true })
